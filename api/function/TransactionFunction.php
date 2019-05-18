@@ -67,8 +67,7 @@ class TransactionFunction
                     $booleanhari[$days - 1] = 1;
                 }
             }
-
-            $startHari = 0;
+            $startHari = $hari;
             $jam = date('H') + 7 % 24;
             $pengali = 0;
             if ($jam > 17) {
@@ -78,10 +77,10 @@ class TransactionFunction
                 }
             }
             if ($startHari + 1 >= 7) {
-                $startHari = ($hari + 1) == 7 ? 6 : ($hari + 1) % 6;
+                $startHari = 1;
                 $pengali = 1;
             } else {
-                $startHari = ($hari + 1) == 7 ? 6 : ($hari + 1) % 6;
+                $startHari = ($hari + 1);
             }
             $kontrolsekali = true;
             $bulanPesanan = date('n');
@@ -154,10 +153,10 @@ class TransactionFunction
                                     $amount--;
                                     if ($stmt->execute()) {
                                         $stmt->close();
-                                        $stmt = $this->conn->prepare("SELECT * FROM transactions WHERE invoice =? LIMIT 1");
+                                        $stmt = $this->conn->prepare("SELECT * FROM transactions WHERE invoice =?");
                                         $stmt->bind_param("s", $invoice);
                                         $stmt->execute();
-                                        $transactions = $stmt->get_result()->fetch_assoc();
+                                        $transactions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         $stmt->close();
                                         $check = true;
                                     } else {
@@ -356,10 +355,14 @@ class TransactionFunction
             $tahunSekarang = date('Y');
             $check = false;
 
-            if ($hariSekarang == 6 || $hariSekarang == 5 && $jamSekarang > 17) {
-                $startTanggal = $date - $hariSekarang + 14;
+            if ($hariSekarang == 6 || ($hariSekarang == 5 && $jamSekarang > 17)) {
+                $startTanggal = ($date - $hariSekarang) + 14;
+                if ($startTanggal > $bulan[$bulanSekarang - 1]) {
+                    $startTanggal = $startTanggal % $bulan[$bulanSekarang];
+                    $bulanSekarang++;
+                }
             } else {
-                $startTanggal = $date - $hariSekarang + 7;
+                $startTanggal = ($date - $hariSekarang) + 7;
             }
 
             $tanggalPesanan = $startTanggal;
@@ -372,7 +375,7 @@ class TransactionFunction
                     $bulanPesanan = 0;
                 } else if ($tanggalPesanan + 1 > $bulan[$bulanPesanan - 1]) {
                     $bulanPesanan++;
-                    $tanggalPesanan =1;
+                    $tanggalPesanan = 1;
                 }
                 $dateInput = $tanggalPesanan . "-" . $bulanPesanan . "-" . $tahunPesanan;
                 $datePesanan = DateTime::createFromFormat('d-m-Y', $dateInput)->format('Y-m-d');
@@ -430,7 +433,7 @@ class TransactionFunction
         }
     }
 
-    public function DietKhusus($user_id, $product_id, $days, $times, $amount, $notes, $activity)
+    public function DietKhusus($user_id, $product_id, $days, $times, $notes, $activity)
     {
         if ($this->CheckUserUnpaid($user_id)) {
             $response['error'] = true;
@@ -439,17 +442,12 @@ class TransactionFunction
         } else {
             //Activity
             //0= No exercise, 1=Light, 2=Moderate, 3= Heavy, 4=Very Heavy
-            $invoice = uniqid("INV", false);
-            $date = date('d');
-            $hari = date('N') - 1;
-            $bulan = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-            $bulanSekarang = date('n');
-            $tahunSekarang = date('Y');
             $user = $this->GetUser($user_id);
             $weight = $user['weight'];
             $height = $user['height'];
             $gender = $user['gender']; //0 = Laki Laki, 1 = Perempuan
             $birth_date = $user['birth_date'];
+            $tahunSekarang = date('Y');
             $splitBirthDate = explode('-', $birth_date);
             $age = $tahunSekarang - $splitBirthDate[0];
             $statusGizi = 0; //1=Kurus, 2=Normal, 3=Overweight, 4=Obesitas
@@ -507,6 +505,20 @@ class TransactionFunction
                     break;
             }
 
+            if ($product_id == "SP001") {
+                $amount = 18;
+            } else if ($product_id == "SP001") {
+                $amount = 30;
+            } else if ($product_id == "SP001") {
+                $amount = 90;
+            }
+
+            $invoice = uniqid("INV", false);
+            $date = date('d');
+            $hari = date('N') - 1;
+            $bulan = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            $bulanSekarang = date('n');
+
             $pecahanwaktu = [0, 0, 0];
             $booleanwaktu = [0, 0, 0];
             for ($i = 0; $i < 3; $i++) {
@@ -550,7 +562,7 @@ class TransactionFunction
                 }
             }
 
-            $startHari = 0;
+            $startHari = $hari;
             $jam = date('H') + 7 % 24;
             $pengali = 0;
             if ($jam > 17) {
@@ -560,10 +572,10 @@ class TransactionFunction
                 }
             }
             if ($startHari + 1 >= 7) {
-                $startHari = ($hari + 1) == 7 ? 6 : ($hari + 1) % 6;
+                $startHari = 1;
                 $pengali = 1;
             } else {
-                $startHari = ($hari + 1) == 7 ? 6 : ($hari + 1) % 6;
+                $startHari = ($hari + 1);
             }
             $kontrolsekali = true;
             $bulanPesanan = date('n');
@@ -571,6 +583,7 @@ class TransactionFunction
             $date = $date - $hari;
             $temp = $amount;
             $check = false;
+            // echo $date;
             for ($banyak = 0; $banyak < $temp;) {
                 if ($temp != $amount) {
                     $banyak++;
@@ -630,20 +643,22 @@ class TransactionFunction
                                 $datenow = date("Y-m-d H:i:s");
                                 $stmt = $this->conn->prepare("INSERT INTO `transactions`(`invoice`, `product_id`, `user_id`, `date`, `notes`, `times`, `proof_of_payment`, `status`, `created_at`, `updated_at`) VALUES(?,?,?,?,?,?,?,?,?,?)");
                                 $status = 1;
+
                                 $proof = " ";
-                                $tempNotes = $notes;
-                                $notes = "Daily Calorie : " . $dailyCalories . " calorie \r\n";
-                                $notes .= $tempNotes;
                                 if ($stmt != FALSE) {
                                     $stmt->bind_param("ssssssssss", $invoice, $product_id, $user_id, $datePesanan, $notes, $j, $proof, $status, $datenow, $datenow);
                                     $amount--;
+                                    $tempNotes = $notes;
+                                    $notes = "Daily Calorie : " . $dailyCalories . "\r\n";
+                                    $notes.= $tempNotes;
                                     if ($stmt->execute()) {
                                         $stmt->close();
-                                        $stmt = $this->conn->prepare("SELECT * FROM transactions WHERE invoice =? LIMIT 1");
+                                        $notes = $tempNotes;
+                                        $stmt = $this->conn->prepare("SELECT * FROM transactions WHERE invoice =?");
                                         $stmt->bind_param("s", $invoice);
                                         $stmt->execute();
+                                        $transactions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         $stmt->close();
-                                        $notes = $tempNotes;
                                         $check = true;
                                     } else {
                                         $response['error'] = true;
@@ -660,21 +675,6 @@ class TransactionFunction
                     }
                 }
             }
-
-            $stmt = $this->conn->prepare("SELECT * FROM transactions WHERE invoice=?");
-            if ($stmt != false) {
-                $stmt->bind_param("s", $invoice);
-                if ($stmt->execute()) {
-                    $transactions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-                    $stmt->close();
-                    if ($transactions != NULL) {
-                        $check = true;
-                    } else {
-                        $check = false;
-                    }
-                }
-            }
-
             if ($check) {
                 return $transactions;
             } else {
@@ -683,7 +683,8 @@ class TransactionFunction
         }
     }
 
-    public function CheckUserUnpaid($user_id) {
+    public function CheckUserUnpaid($user_id)
+    {
         $check = true;
         $stmt = $this->conn->prepare("SELECT * FROM transactions WHERE user_id=? && status=?");
         if ($stmt != false) {

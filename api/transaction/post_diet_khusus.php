@@ -8,12 +8,12 @@ $user_id = $_REQUEST['user_id'];
 $product_id = $_REQUEST['product_id'];
 $times = $_REQUEST['times'];
 $days = $_REQUEST['days'];
-$amount = $_REQUEST['amount'];
 $notes = $_REQUEST['notes'];
 $activity = $_REQUEST['activity'];
 
-$transactions = $db->DietKhusus($user_id, $product_id, $days, $times, $amount, $notes, $activity);
-if ($transactions) {
+
+$transactions = $db->DietKhusus($user_id, $product_id, $days, $times, $notes, $activity);
+if ($transactions != false || $transactions != NULL) {
     $user = $db->GetUser($transactions[0]['user_id']);
     $package = $db->GetProduct($transactions[0]['product_id']);
     $response['message'] = "Success Ordering";
